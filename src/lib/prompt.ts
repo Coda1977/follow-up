@@ -27,6 +27,4 @@ PROBING TRIGGERS:
 
 START by introducing yourself and asking about their overall experience.`;
 
-export const OPENING_MESSAGE = `Hi! I'm gathering feedback about your experience working with YP. This will take about 5-10 minutes, and your responses will help YP continue to improve.
-
-To start: How would you describe your overall experience working with YP?`;
+export const OPENING_MESSAGE = `Hi! I'm gathering feedback about your experience working with YP. This will take about 5-10 minutes, and your responses will help YP continue to improve.`;

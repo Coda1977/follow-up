@@ -148,7 +148,7 @@ export default function InterviewPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your response..."
-            className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:border-blue-500"
+            className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:border-blue-500 text-gray-900"
             disabled={status === "streaming"}
           />
           <button
