@@ -6,8 +6,9 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { OPENING_MESSAGE } from "@/lib/prompt";
+import { getPrompts } from "@/lib/prompt";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { franc } from "franc-min";
 
 export default function InterviewPage() {
   const params = useParams();
@@ -16,10 +17,23 @@ export default function InterviewPage() {
   const interview = useQuery(api.interviews.getByUniqueId, { uniqueId });
   const saveMessage = useMutation(api.interviews.saveMessage);
   const completeInterview = useMutation(api.interviews.complete);
+  const updateLanguage = useMutation(api.interviews.updateLanguage);
 
   const [isComplete, setIsComplete] = useState(false);
   const [input, setInput] = useState("");
+  const [detectedLanguage, setDetectedLanguage] = useState<'en' | 'he'>('en');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Get language-specific prompts
+  const prompts = getPrompts(detectedLanguage);
+
+  // Language detection helper
+  const detectLanguage = (text: string): 'en' | 'he' => {
+    const langCode = franc(text, { minLength: 3 });
+    // franc returns 'heb' for Hebrew, 'eng' for English
+    if (langCode === 'heb') return 'he';
+    return 'en';
+  };
 
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({ api: "/api/chat" }),
@@ -44,6 +58,17 @@ export default function InterviewPage() {
     if (!input.trim() || !interview?._id) return;
 
     const messageContent = input;
+
+    // Detect language and update if changed
+    const detected = detectLanguage(messageContent);
+    if (detected !== detectedLanguage) {
+      setDetectedLanguage(detected);
+      await updateLanguage({
+        interviewId: interview._id as Id<"interviews">,
+        language: detected,
+      });
+    }
+
     setInput(""); // Clear input immediately
 
     await saveMessage({
@@ -52,7 +77,10 @@ export default function InterviewPage() {
       content: messageContent,
     });
 
-    sendMessage({ text: messageContent });
+    sendMessage({
+      text: messageContent,
+      experimental_data: { language: detected }
+    });
   };
 
   // End interview manually
@@ -78,17 +106,17 @@ export default function InterviewPage() {
 
   if (isComplete) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-white" dir={detectedLanguage === 'he' ? 'rtl' : 'ltr'}>
         <div className="text-center p-8 space-y-6">
-          <h1 className="text-6xl font-black text-[#1a1a1a]">Thank you.</h1>
-          <p className="text-2xl font-light text-[#404040]">Your words matter.</p>
+          <h1 className="text-6xl font-black text-[#1a1a1a]">{prompts.thankYou.title}</h1>
+          <p className="text-2xl font-light text-[#404040]">{prompts.thankYou.subtitle}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col" dir={detectedLanguage === 'he' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="border-b border-gray-200 px-8 py-6 flex items-center justify-between">
         <h1 className="text-sm font-light text-[#404040] tracking-wide uppercase">Conversation</h1>
@@ -97,7 +125,7 @@ export default function InterviewPage() {
             onClick={handleEndInterview}
             className="bg-[#1a1a1a] text-white px-6 py-2 text-sm font-semibold hover:bg-[#e07a5f] transition-colors duration-300"
           >
-            End
+            {prompts.endButton}
           </button>
         )}
       </header>
@@ -108,7 +136,7 @@ export default function InterviewPage() {
         {messages.length === 0 && (
           <div className="text-left">
             <p className="text-2xl font-light text-[#404040] leading-relaxed">
-              {OPENING_MESSAGE}
+              {prompts.openingMessage}
             </p>
           </div>
         )}
@@ -124,16 +152,20 @@ export default function InterviewPage() {
           return (
             <div
               key={message.id}
-              className={message.role === "user" ? "text-right" : "text-left"}
+              className={message.role === "user" ? "flex justify-end" : "flex justify-start"}
             >
               {message.role === "assistant" ? (
-                <p className="text-2xl font-light text-[#404040] leading-relaxed">
-                  {textContent}
-                </p>
+                <div className="max-w-3xl px-6 py-4 rounded-2xl bg-gray-50/50 border border-gray-100">
+                  <p className="text-2xl font-light text-[#404040] leading-relaxed">
+                    {textContent}
+                  </p>
+                </div>
               ) : (
-                <p className="text-xl font-semibold text-[#1a1a1a] leading-relaxed">
-                  {textContent}
-                </p>
+                <div className="max-w-2xl px-6 py-4 rounded-2xl bg-[#1a1a1a] border border-[#1a1a1a]">
+                  <p className="text-xl font-semibold text-white leading-relaxed">
+                    {textContent}
+                  </p>
+                </div>
               )}
             </div>
           );
@@ -155,9 +187,10 @@ export default function InterviewPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type here..."
-            className="flex-1 text-xl font-semibold text-[#1a1a1a] border-b-2 border-gray-200 pb-2 focus:outline-none focus:border-[#1a1a1a] transition-colors bg-transparent placeholder:text-gray-300"
+            placeholder={detectedLanguage === 'he' ? 'הקלד כאן...' : 'Type here...'}
+            className={`flex-1 text-xl font-semibold text-[#1a1a1a] border-b-2 border-gray-200 pb-2 focus:outline-none focus:border-[#1a1a1a] transition-colors bg-transparent placeholder:text-gray-300 ${detectedLanguage === 'he' ? 'text-right' : 'text-left'}`}
             disabled={status === "streaming"}
+            dir={detectedLanguage === 'he' ? 'rtl' : 'ltr'}
           />
           <button
             type="submit"

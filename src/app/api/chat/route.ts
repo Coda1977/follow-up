@@ -1,11 +1,17 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
-import { SYSTEM_PROMPT } from "@/lib/prompt";
+import { SYSTEM_PROMPT_EN, SYSTEM_PROMPT_HE } from "@/lib/prompt";
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, experimental_data } = await req.json();
+
+  // Get language from experimental_data
+  const language = experimental_data?.language || 'en';
+
+  // Select appropriate system prompt
+  const systemPrompt = language === 'he' ? SYSTEM_PROMPT_HE : SYSTEM_PROMPT_EN;
 
   // Convert UI messages (with parts) to standard format (with content)
   const convertedMessages = messages.map((msg: any) => {
@@ -26,7 +32,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: anthropic("claude-sonnet-4-20250514"),
-    system: SYSTEM_PROMPT,
+    system: systemPrompt,
     messages: convertedMessages,
   });
 
