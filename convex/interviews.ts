@@ -5,7 +5,8 @@ import { mutation, query } from "./_generated/server";
 export const create = mutation({
   args: {},
   handler: async (ctx) => {
-    const uniqueId = crypto.randomUUID().slice(0, 8);
+    // Generate a simple unique ID using timestamp and random number
+    const uniqueId = Math.random().toString(36).substring(2, 10);
     const interviewId = await ctx.db.insert("interviews", {
       uniqueId,
       status: "in_progress",
