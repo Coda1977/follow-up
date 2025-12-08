@@ -62,6 +62,14 @@ export default function InterviewPage() {
     sendMessage({ text: messageContent });
   };
 
+  // End interview manually
+  const handleEndInterview = async () => {
+    if (interview?._id) {
+      await completeInterview({ interviewId: interview._id as Id<"interviews"> });
+      setIsComplete(true);
+    }
+  };
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,8 +98,16 @@ export default function InterviewPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b px-4 py-3">
-        <h1 className="text-lg font-semibold text-center">Feedback Interview</h1>
+      <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
+        <h1 className="text-lg font-semibold flex-1 text-center">Feedback Interview</h1>
+        {messages.length > 0 && (
+          <button
+            onClick={handleEndInterview}
+            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition"
+          >
+            Done
+          </button>
+        )}
       </header>
 
       {/* Messages */}
