@@ -19,26 +19,46 @@ export default function TranscriptPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <a href="/admin" className="text-blue-500 hover:underline mb-4 block">
-        ← Back to all interviews
-      </a>
+    <div className="min-h-screen bg-white px-8 md:px-16 py-16">
+      <div className="max-w-4xl mx-auto">
+        <a
+          href="/admin"
+          className="inline-block mb-12 text-sm font-semibold text-[#1a1a1a] hover:text-[#e07a5f] transition-colors"
+        >
+          ← All Interviews
+        </a>
 
-      <h1 className="text-2xl font-semibold mb-6">
-        Transcript: #{interview.uniqueId}
-      </h1>
+        <h1 className="text-5xl font-black text-[#1a1a1a] mb-4">
+          #{interview.uniqueId}
+        </h1>
+        <p className="text-sm font-light text-[#404040] tracking-wide uppercase mb-16">
+          Completed: {new Date(interview.completedAt!).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </p>
 
-      <div className="bg-white rounded-lg p-6 shadow-sm space-y-4">
-        {messages.map((message, i) => (
-          <div key={i} className={message.role === "user" ? "pl-8" : ""}>
-            <p className="text-xs text-gray-400 mb-1">
-              {message.role === "user" ? "Client" : "AI"}
-            </p>
-            <p className={message.role === "user" ? "text-blue-600 font-medium" : "text-gray-900"}>
-              {message.content}
-            </p>
-          </div>
-        ))}
+        <div className="space-y-12">
+          {messages.map((message, i) => (
+            <div key={i} className={message.role === "user" ? "text-right" : "text-left"}>
+              <p className="text-xs font-semibold text-[#404040] tracking-wide uppercase mb-2">
+                {message.role === "user" ? "Client" : "AI"}
+              </p>
+              {message.role === "assistant" ? (
+                <p className="text-2xl font-light text-[#404040] leading-relaxed">
+                  {message.content}
+                </p>
+              ) : (
+                <p className="text-xl font-semibold text-[#1a1a1a] leading-relaxed">
+                  {message.content}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

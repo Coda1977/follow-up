@@ -14,28 +14,27 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-sm p-8 text-center">
-        <h1 className="text-2xl font-semibold mb-4">
-          Feedback Interview
+    <div className="min-h-screen flex items-center justify-center bg-white px-8">
+      <div className="max-w-3xl w-full text-center space-y-12">
+        <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-none text-[#1a1a1a]">
+          Let's talk.
         </h1>
-        <p className="text-gray-600 mb-6">
-          Thank you for taking a few minutes to share your experience
-          working with YP. Your honest feedback is valuable and will
-          help improve future engagements.
+        <p className="text-2xl md:text-3xl font-light text-[#404040] max-w-2xl mx-auto leading-relaxed">
+          Share your real experience working with YP.
+          <br />
+          The good, the real, everything.
         </p>
-        <p className="text-sm text-gray-500 mb-6">
-          This conversation takes about 5-10 minutes.
-        </p>
-        <button
-          onClick={handleStart}
-          className="bg-blue-500 text-white rounded-lg px-6 py-3 font-medium hover:bg-blue-600 transition"
-        >
-          Begin Interview
-        </button>
-        <p className="text-xs text-gray-400 mt-6">
-          Your responses are confidential
-        </p>
+        <div className="space-y-4">
+          <button
+            onClick={handleStart}
+            className="bg-[#1a1a1a] text-white px-12 py-5 text-xl font-bold hover:bg-[#e07a5f] transition-colors duration-300"
+          >
+            Start
+          </button>
+          <p className="text-sm text-[#404040] font-light">
+            ~10 minutes · Your words stay private
+          </p>
+        </div>
       </div>
     </div>
   );

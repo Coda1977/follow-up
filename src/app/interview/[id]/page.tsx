@@ -78,39 +78,38 @@ export default function InterviewPage() {
 
   if (isComplete) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <div className="text-4xl mb-4">✓</div>
-          <h1 className="text-2xl font-semibold mb-2">Thank you!</h1>
-          <p className="text-gray-600">Your feedback has been recorded.</p>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center p-8 space-y-6">
+          <h1 className="text-6xl font-black text-[#1a1a1a]">Thank you.</h1>
+          <p className="text-2xl font-light text-[#404040]">Your words matter.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-semibold flex-1 text-center">Feedback Interview</h1>
+      <header className="border-b border-gray-200 px-8 py-6 flex items-center justify-between">
+        <h1 className="text-sm font-light text-[#404040] tracking-wide uppercase">Conversation</h1>
         {messages.length > 0 && (
           <button
             onClick={handleEndInterview}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition"
+            className="bg-[#1a1a1a] text-white px-6 py-2 text-sm font-semibold hover:bg-[#e07a5f] transition-colors duration-300"
           >
-            Done
+            End
           </button>
         )}
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-8 md:px-16 py-12 max-w-4xl mx-auto w-full space-y-12">
         {/* Show opening message only if no messages yet */}
         {messages.length === 0 && (
-          <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-white border border-gray-200 text-gray-900">
+          <div className="text-left">
+            <p className="text-2xl font-light text-[#404040] leading-relaxed">
               {OPENING_MESSAGE}
-            </div>
+            </p>
           </div>
         )}
 
@@ -125,26 +124,24 @@ export default function InterviewPage() {
           return (
             <div
               key={message.id}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              className={message.role === "user" ? "text-right" : "text-left"}
             >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                  message.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-white border border-gray-200 text-gray-900"
-                }`}
-              >
-                {textContent}
-              </div>
+              {message.role === "assistant" ? (
+                <p className="text-2xl font-light text-[#404040] leading-relaxed">
+                  {textContent}
+                </p>
+              ) : (
+                <p className="text-xl font-semibold text-[#1a1a1a] leading-relaxed">
+                  {textContent}
+                </p>
+              )}
             </div>
           );
         })}
 
         {status === "streaming" && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl px-4 py-2">
-              <span className="animate-pulse">...</span>
-            </div>
+          <div className="text-left">
+            <span className="text-2xl font-light text-[#404040] animate-pulse">...</span>
           </div>
         )}
 
@@ -152,22 +149,22 @@ export default function InterviewPage() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleFormSubmit} className="bg-white border-t p-4">
-        <div className="flex space-x-2">
+      <form onSubmit={handleFormSubmit} className="border-t border-gray-200 px-8 md:px-16 py-6 max-w-4xl mx-auto w-full">
+        <div className="flex items-center space-x-4">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your response..."
-            className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:border-blue-500 text-gray-900"
+            placeholder="Type here..."
+            className="flex-1 text-xl font-semibold text-[#1a1a1a] border-b-2 border-gray-200 pb-2 focus:outline-none focus:border-[#1a1a1a] transition-colors bg-transparent placeholder:text-gray-300"
             disabled={status === "streaming"}
           />
           <button
             type="submit"
             disabled={status === "streaming" || !input.trim()}
-            className="bg-blue-500 text-white rounded-full px-6 py-2 disabled:opacity-50"
+            className="bg-[#1a1a1a] text-white px-8 py-3 text-lg font-bold hover:bg-[#e07a5f] disabled:opacity-30 disabled:hover:bg-[#1a1a1a] transition-colors duration-300"
           >
-            Send
+            →
           </button>
         </div>
       </form>
