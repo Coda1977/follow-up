@@ -25,7 +25,7 @@ export default function InterviewPage() {
     transport: new TextStreamChatTransport({ api: "/api/chat" }),
     onFinish: async ({ message }) => {
       if (interview?._id) {
-        // Get the text content from the message
+        // Get the text content from the message and save it
         const textPart = message.parts.find(p => p.type === 'text');
         if (textPart && 'text' in textPart) {
           await saveMessage({
@@ -33,13 +33,6 @@ export default function InterviewPage() {
             role: "assistant",
             content: textPart.text,
           });
-
-          // Check if we should end the interview (after ~8 exchanges)
-          const userMessages = messages.filter(m => m.role === "user").length;
-          if (userMessages >= 6 && textPart.text.toLowerCase().includes("thank")) {
-            setIsComplete(true);
-            await completeInterview({ interviewId: interview._id as Id<"interviews"> });
-          }
         }
       }
     },
