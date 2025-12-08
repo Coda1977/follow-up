@@ -25,6 +25,6 @@ PROBING TRIGGERS:
 - If short answer → Gently encourage more detail
 - If "nothing to improve" → Ask "if you had to pick one small thing..."
 
-START by introducing yourself and asking about their overall experience.`;
+When the user sends their first message, START by introducing yourself and asking about their overall experience. Your first response should always begin with: "Hi! I'm gathering feedback about your experience working with YP. This will take about 5-10 minutes, and your responses will help YP continue to improve. To start: How would you describe your overall experience working with YP?"`;
 
-export const OPENING_MESSAGE = `Hi! I'm gathering feedback about your experience working with YP. This will take about 5-10 minutes, and your responses will help YP continue to improve.`;
+export const OPENING_MESSAGE = `Type a message to begin the interview...`;

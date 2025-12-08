@@ -20,8 +20,8 @@ export default function AdminPage() {
               href={`/admin/${interview.uniqueId}`}
               className="block bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition"
             >
-              <p className="font-medium">Interview #{interview.uniqueId}</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-gray-900">Interview #{interview.uniqueId}</p>
+              <p className="text-sm text-gray-600">
                 Completed: {new Date(interview.completedAt!).toLocaleString()}
               </p>
             </a>

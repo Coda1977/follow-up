@@ -34,7 +34,7 @@ export default function TranscriptPage() {
             <p className="text-xs text-gray-400 mb-1">
               {message.role === "user" ? "Client" : "AI"}
             </p>
-            <p className={message.role === "user" ? "text-blue-600" : ""}>
+            <p className={message.role === "user" ? "text-blue-600 font-medium" : "text-gray-900"}>
               {message.content}
             </p>
           </div>

@@ -105,12 +105,14 @@ export default function InterviewPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Static opening message */}
-        <div className="flex justify-start">
-          <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-white border border-gray-200 text-gray-900">
-            {OPENING_MESSAGE}
+        {/* Show opening message only if no messages yet */}
+        {messages.length === 0 && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-white border border-gray-200 text-gray-900">
+              {OPENING_MESSAGE}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Chat messages */}
         {messages.map((message) => {
