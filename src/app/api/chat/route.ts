@@ -5,10 +5,7 @@ import { SYSTEM_PROMPT_EN, SYSTEM_PROMPT_HE } from "@/lib/prompt";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages, experimental_data } = await req.json();
-
-  // Get language from experimental_data
-  const language = experimental_data?.language || 'en';
+  const { messages, language = 'en' } = await req.json();
 
   // Select appropriate system prompt
   const systemPrompt = language === 'he' ? SYSTEM_PROMPT_HE : SYSTEM_PROMPT_EN;

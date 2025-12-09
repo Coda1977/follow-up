@@ -37,6 +37,7 @@ export default function InterviewPage() {
 
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({ api: "/api/chat" }),
+    body: { language: detectedLanguage },
     onFinish: async ({ message }) => {
       if (interview?._id) {
         // Get the text content from the message and save it
@@ -77,10 +78,7 @@ export default function InterviewPage() {
       content: messageContent,
     });
 
-    sendMessage({
-      text: messageContent,
-      experimental_data: { language: detected }
-    });
+    sendMessage({ text: messageContent });
   };
 
   // End interview manually
