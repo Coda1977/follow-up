@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 
@@ -8,6 +8,29 @@ export default function AdminPage() {
   const interviews = useQuery(api.interviews.getAllCompleted);
   const analysis = useQuery(api.interviews.getCrossInterviewAnalysis);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [isGeneratingOverall, setIsGeneratingOverall] = useState(false);
+  const [overallSummary, setOverallSummary] = useState<{
+    overallSummary: string;
+    keyStrengths: string[];
+    keyWeaknesses: string[];
+    commonPatterns: string[];
+    actionableInsights: string[];
+  } | null>(null);
+
+  const generateOverallSummary = useAction(api.interviews.generateOverallSummary);
+
+  const handleGenerateOverallSummary = async () => {
+    setIsGeneratingOverall(true);
+    try {
+      const result = await generateOverallSummary({});
+      setOverallSummary(result);
+    } catch (error) {
+      console.error('Failed to generate overall summary:', error);
+      alert('Failed to generate overall summary. Please try again.');
+    } finally {
+      setIsGeneratingOverall(false);
+    }
+  };
 
   // Filter interviews by selected theme
   const filteredInterviews = selectedTheme
@@ -18,6 +41,93 @@ export default function AdminPage() {
     <div className="min-h-screen bg-white px-8 md:px-16 py-16">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-6xl font-black text-[#1a1a1a] mb-16">Interviews</h1>
+
+        {/* Overall Summary Section */}
+        {interviews && interviews.length > 0 && (
+          <div className="mb-16 p-8 bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] rounded-lg border border-gray-800 text-white">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold">Overall Insights</h2>
+              <button
+                onClick={handleGenerateOverallSummary}
+                disabled={isGeneratingOverall}
+                className="bg-[#e07a5f] text-white px-6 py-3 text-sm font-semibold hover:bg-[#d06a4f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded"
+              >
+                {isGeneratingOverall ? 'Generating...' : overallSummary ? 'Regenerate' : 'Generate Overall Summary'}
+              </button>
+            </div>
+
+            {overallSummary ? (
+              <div className="space-y-8">
+                {/* Overall Summary */}
+                <div>
+                  <p className="text-xl font-light leading-relaxed opacity-90">
+                    {overallSummary.overallSummary}
+                  </p>
+                </div>
+
+                {/* Key Strengths */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide mb-3 text-green-400">
+                    Key Strengths
+                  </h3>
+                  <ul className="space-y-2">
+                    {overallSummary.keyStrengths.map((strength, i) => (
+                      <li key={i} className="text-base opacity-90 pl-4 border-l-2 border-green-400">
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Key Weaknesses */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide mb-3 text-orange-400">
+                    Areas for Improvement
+                  </h3>
+                  <ul className="space-y-2">
+                    {overallSummary.keyWeaknesses.map((weakness, i) => (
+                      <li key={i} className="text-base opacity-90 pl-4 border-l-2 border-orange-400">
+                        {weakness}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Common Patterns */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide mb-3 text-blue-400">
+                    Common Patterns
+                  </h3>
+                  <ul className="space-y-2">
+                    {overallSummary.commonPatterns.map((pattern, i) => (
+                      <li key={i} className="text-base opacity-90 pl-4 border-l-2 border-blue-400">
+                        {pattern}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Actionable Insights */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide mb-3 text-purple-400">
+                    Actionable Insights
+                  </h3>
+                  <ul className="space-y-2">
+                    {overallSummary.actionableInsights.map((insight, i) => (
+                      <li key={i} className="text-base opacity-90 pl-4 border-l-2 border-purple-400">
+                        {insight}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <p className="text-base opacity-70">
+                Generate an AI-powered summary analyzing all {interviews.length} interviews together to identify patterns, strengths, and actionable insights.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Analytics Overview */}
         {analysis && analysis.totalWithSummary > 0 && (

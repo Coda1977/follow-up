@@ -307,3 +307,132 @@ export const getCrossInterviewAnalysis = query({
     };
   },
 });
+
+// Generate overall AI summary across all interviews
+export const generateOverallSummary = action({
+  args: {},
+  handler: async (ctx): Promise<{
+    overallSummary: string;
+    keyStrengths: string[];
+    keyWeaknesses: string[];
+    commonPatterns: string[];
+    actionableInsights: string[];
+  }> => {
+    // Get all completed interviews with summaries
+    const interviews: Array<{
+      summary?: string;
+      keyThemes?: string[];
+      sentiment?: string;
+      specificPraise?: string[];
+      areasForImprovement?: string[];
+    }> = await ctx.runQuery(api.interviews.getAllCompleted);
+
+    if (interviews.length === 0) {
+      throw new Error('No completed interviews found');
+    }
+
+    // Build consolidated data for analysis
+    const consolidatedData = interviews
+      .map((interview, index) => {
+        const parts: string[] = [`Interview ${index + 1}:`];
+
+        if (interview.summary) parts.push(`Summary: ${interview.summary}`);
+        if (interview.sentiment) parts.push(`Sentiment: ${interview.sentiment}`);
+        if (interview.keyThemes?.length) parts.push(`Themes: ${interview.keyThemes.join(', ')}`);
+        if (interview.specificPraise?.length) parts.push(`Praise: ${interview.specificPraise.join(' | ')}`);
+        if (interview.areasForImprovement?.length) parts.push(`Areas for improvement: ${interview.areasForImprovement.join(' | ')}`);
+
+        return parts.join('\n');
+      })
+      .join('\n\n---\n\n');
+
+    // Use tool use for structured outputs
+    const response: Response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY!,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 3000,
+        system: `You are analyzing multiple feedback interviews about YP (an organizational psychologist and consultant) to provide comprehensive insights.
+
+Synthesize ALL the interviews to identify patterns, strengths, and areas for improvement. Use the analyze_all_interviews tool to return your analysis.
+
+RULES:
+- Look for patterns across multiple interviews
+- Highlight consistent strengths and repeated concerns
+- Be honest and balanced - include both positive and negative
+- Focus on actionable insights
+- Use specific examples from the interviews when possible`,
+        messages: [{
+          role: 'user',
+          content: `Analyze these ${interviews.length} feedback interviews and provide overall insights:\n\n${consolidatedData}`,
+        }],
+        tools: [{
+          name: 'analyze_all_interviews',
+          description: 'Analyze all interviews together and return comprehensive insights',
+          input_schema: {
+            type: 'object',
+            properties: {
+              overallSummary: {
+                type: 'string',
+                description: 'A comprehensive 3-4 sentence overview of all feedback combined',
+              },
+              keyStrengths: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Top consistent strengths mentioned across interviews (3-5 items)',
+              },
+              keyWeaknesses: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Top areas for improvement mentioned across interviews (3-5 items)',
+              },
+              commonPatterns: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Common themes or patterns observed across multiple interviews (3-5 items)',
+              },
+              actionableInsights: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Specific, actionable recommendations based on the feedback (3-5 items)',
+              },
+            },
+            required: ['overallSummary', 'keyStrengths', 'keyWeaknesses', 'commonPatterns', 'actionableInsights'],
+          },
+        }],
+        tool_choice: { type: 'tool', name: 'analyze_all_interviews' },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Claude API error: ${response.statusText} - ${errorText}`);
+    }
+
+    const data: {
+      content: Array<{
+        type: string;
+        input?: {
+          overallSummary: string;
+          keyStrengths: string[];
+          keyWeaknesses: string[];
+          commonPatterns: string[];
+          actionableInsights: string[];
+        };
+      }>;
+    } = await response.json();
+
+    // Extract tool use result
+    const toolUse = data.content.find((c: { type: string }) => c.type === 'tool_use');
+    if (!toolUse || !toolUse.input) {
+      throw new Error('No tool use found in response');
+    }
+
+    return toolUse.input;
+  },
+});
