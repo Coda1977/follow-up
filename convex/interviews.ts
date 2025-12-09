@@ -105,10 +105,16 @@ export const getById = internalQuery({
   },
 });
 
-// Generate AI summary for an interview
+// Generate AI summary for an interview using structured outputs (tool use)
 export const generateSummary = action({
   args: { interviewId: v.id("interviews") },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    summary: string;
+    keyThemes: string[];
+    sentiment: string;
+    specificPraise: string[];
+    areasForImprovement: string[];
+  }> => {
     // Get interview details
     const interview = await ctx.runQuery(internal.interviews.getById, {
       id: args.interviewId,
@@ -119,37 +125,19 @@ export const generateSummary = action({
     }
 
     // Get all messages for this interview
-    const messages = await ctx.runQuery(api.interviews.getMessages, {
-      interviewId: args.interviewId,
-    });
+    const messages: Array<{ role: string; content: string; createdAt: number }> =
+      await ctx.runQuery(api.interviews.getMessages, {
+        interviewId: args.interviewId,
+      });
 
     // Build conversation text
-    const conversationText = messages
-      .map(m => `${m.role === 'user' ? 'Client' : 'AI'}: ${m.content}`)
+    const conversationText: string = messages
+      .map((m: { role: string; content: string }) =>
+        `${m.role === 'user' ? 'Client' : 'AI'}: ${m.content}`)
       .join('\n\n');
 
-    // Summary generation prompt
-    const SUMMARY_PROMPT = `You are analyzing a feedback interview conversation about YP (an organizational psychologist and consultant).
-
-Analyze the conversation and return a JSON object with this exact structure:
-
-{
-  "summary": "A 2-3 sentence overview of the client's experience",
-  "keyThemes": ["theme1", "theme2", "theme3"],
-  "sentiment": "positive|mixed|negative",
-  "specificPraise": ["Direct quote 1", "Direct quote 2"],
-  "areasForImprovement": ["Direct quote 1", "Direct quote 2"]
-}
-
-RULES:
-- Use client's actual words for praise and improvement areas (direct quotes)
-- Themes should be single words or 2-word phrases
-- Sentiment should reflect overall tone
-- Be honest - include both positive and negative
-- Return ONLY valid JSON, no other text`;
-
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Use tool use for structured outputs
+    const response: Response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -159,23 +147,88 @@ RULES:
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
-        system: SUMMARY_PROMPT,
+        system: `You are analyzing a feedback interview conversation about YP (an organizational psychologist and consultant).
+
+Analyze the conversation and extract key insights. Use the analyze_interview tool to return your analysis.
+
+RULES:
+- Use client's actual words for praise and improvement areas (direct quotes)
+- Themes should be single words or 2-word phrases
+- Sentiment should reflect overall tone
+- Be honest - include both positive and negative`,
         messages: [{
           role: 'user',
           content: conversationText,
         }],
+        tools: [{
+          name: 'analyze_interview',
+          description: 'Analyze the interview and return structured insights',
+          input_schema: {
+            type: 'object',
+            properties: {
+              summary: {
+                type: 'string',
+                description: 'A 2-3 sentence overview of the client\'s experience',
+              },
+              keyThemes: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Key themes from the conversation (single words or 2-word phrases)',
+              },
+              sentiment: {
+                type: 'string',
+                enum: ['positive', 'mixed', 'negative'],
+                description: 'Overall sentiment of the conversation',
+              },
+              specificPraise: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Direct quotes of specific praise from the client',
+              },
+              areasForImprovement: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Direct quotes about areas for improvement',
+              },
+            },
+            required: ['summary', 'keyThemes', 'sentiment', 'specificPraise', 'areasForImprovement'],
+          },
+        }],
+        tool_choice: { type: 'tool', name: 'analyze_interview' },
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Claude API error: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Claude API error: ${response.statusText} - ${errorText}`);
     }
 
-    const data = await response.json();
-    const analysisText = data.content[0].text;
+    const data: {
+      content: Array<{
+        type: string;
+        input?: {
+          summary: string;
+          keyThemes: string[];
+          sentiment: string;
+          specificPraise: string[];
+          areasForImprovement: string[];
+        };
+      }>;
+    } = await response.json();
 
-    // Parse JSON response
-    const analysis = JSON.parse(analysisText);
+    // Extract tool use result
+    const toolUse = data.content.find((c: { type: string }) => c.type === 'tool_use');
+    if (!toolUse || !toolUse.input) {
+      throw new Error('No tool use found in response');
+    }
+
+    const analysis: {
+      summary: string;
+      keyThemes: string[];
+      sentiment: string;
+      specificPraise: string[];
+      areasForImprovement: string[];
+    } = toolUse.input;
 
     // Save summary to database
     await ctx.runMutation(api.interviews.saveSummary, {

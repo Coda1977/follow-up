@@ -8,7 +8,6 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { getPrompts } from "@/lib/prompt";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { franc } from "franc-min";
 
 export default function InterviewPage() {
   const params = useParams();
@@ -21,23 +20,25 @@ export default function InterviewPage() {
 
   const [isComplete, setIsComplete] = useState(false);
   const [input, setInput] = useState("");
-  const [detectedLanguage, setDetectedLanguage] = useState<'en' | 'he'>('en');
+  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'he' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Get language-specific prompts
-  const prompts = getPrompts(detectedLanguage);
-
-  // Language detection helper
-  const detectLanguage = (text: string): 'en' | 'he' => {
-    const langCode = franc(text, { minLength: 3 });
-    // franc returns 'heb' for Hebrew, 'eng' for English
-    if (langCode === 'heb') return 'he';
-    return 'en';
-  };
+  const prompts = getPrompts(selectedLanguage || 'en');
 
   const { messages, sendMessage, status } = useChat({
-    transport: new TextStreamChatTransport({ api: "/api/chat" }),
-    body: { language: detectedLanguage },
+    transport: new TextStreamChatTransport({
+      api: "/api/chat",
+      fetch: (url, options) => {
+        return fetch(url, {
+          ...options,
+          headers: {
+            ...options?.headers,
+            'X-Language': selectedLanguage || 'en',
+          },
+        });
+      },
+    }),
     onFinish: async ({ message }) => {
       if (interview?._id) {
         // Get the text content from the message and save it
@@ -59,17 +60,6 @@ export default function InterviewPage() {
     if (!input.trim() || !interview?._id) return;
 
     const messageContent = input;
-
-    // Detect language and update if changed
-    const detected = detectLanguage(messageContent);
-    if (detected !== detectedLanguage) {
-      setDetectedLanguage(detected);
-      await updateLanguage({
-        interviewId: interview._id as Id<"interviews">,
-        language: detected,
-      });
-    }
-
     setInput(""); // Clear input immediately
 
     await saveMessage({
@@ -79,6 +69,17 @@ export default function InterviewPage() {
     });
 
     sendMessage({ text: messageContent });
+  };
+
+  // Handle language selection
+  const handleLanguageSelect = async (lang: 'en' | 'he') => {
+    setSelectedLanguage(lang);
+    if (interview?._id) {
+      await updateLanguage({
+        interviewId: interview._id as Id<"interviews">,
+        language: lang,
+      });
+    }
   };
 
   // End interview manually
@@ -102,9 +103,35 @@ export default function InterviewPage() {
     );
   }
 
+  // Language selection screen
+  if (!selectedLanguage) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center p-8 space-y-12 max-w-2xl">
+          <h1 className="text-6xl font-black text-[#1a1a1a]">Choose Your Language</h1>
+          <p className="text-2xl font-light text-[#404040]">בחר את השפה שלך</p>
+          <div className="flex gap-6 justify-center">
+            <button
+              onClick={() => handleLanguageSelect('en')}
+              className="px-12 py-6 text-2xl font-bold bg-[#1a1a1a] text-white hover:bg-[#e07a5f] transition-colors duration-300 rounded-lg"
+            >
+              English
+            </button>
+            <button
+              onClick={() => handleLanguageSelect('he')}
+              className="px-12 py-6 text-2xl font-bold bg-[#1a1a1a] text-white hover:bg-[#e07a5f] transition-colors duration-300 rounded-lg"
+            >
+              עברית
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isComplete) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white" dir={detectedLanguage === 'he' ? 'rtl' : 'ltr'}>
+      <div className="min-h-screen flex items-center justify-center bg-white" dir={selectedLanguage === 'he' ? 'rtl' : 'ltr'}>
         <div className="text-center p-8 space-y-6">
           <h1 className="text-6xl font-black text-[#1a1a1a]">{prompts.thankYou.title}</h1>
           <p className="text-2xl font-light text-[#404040]">{prompts.thankYou.subtitle}</p>
@@ -114,7 +141,7 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col" dir={detectedLanguage === 'he' ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-white flex flex-col" dir={selectedLanguage === 'he' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="border-b border-gray-200 px-8 py-6 flex items-center justify-between">
         <h1 className="text-sm font-light text-[#404040] tracking-wide uppercase">Conversation</h1>
@@ -185,10 +212,10 @@ export default function InterviewPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={detectedLanguage === 'he' ? 'הקלד כאן...' : 'Type here...'}
-            className={`flex-1 text-xl font-semibold text-[#1a1a1a] border-b-2 border-gray-200 pb-2 focus:outline-none focus:border-[#1a1a1a] transition-colors bg-transparent placeholder:text-gray-300 ${detectedLanguage === 'he' ? 'text-right' : 'text-left'}`}
+            placeholder={selectedLanguage === 'he' ? 'הקלד כאן...' : 'Type here...'}
+            className={`flex-1 text-xl font-semibold text-[#1a1a1a] border-b-2 border-gray-200 pb-2 focus:outline-none focus:border-[#1a1a1a] transition-colors bg-transparent placeholder:text-gray-300 ${selectedLanguage === 'he' ? 'text-right' : 'text-left'}`}
             disabled={status === "streaming"}
-            dir={detectedLanguage === 'he' ? 'rtl' : 'ltr'}
+            dir={selectedLanguage === 'he' ? 'rtl' : 'ltr'}
           />
           <button
             type="submit"
